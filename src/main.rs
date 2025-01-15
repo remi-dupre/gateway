@@ -109,7 +109,10 @@ fn get_response(
 
 fn inject_cors(headers: &mut HeaderMap<HeaderValue>) {
     headers.insert(ACCESS_CONTROL_ALLOW_ORIGIN, "*".parse().unwrap());
-    headers.insert(ACCESS_CONTROL_EXPOSE_HEADERS, "location, retry-after".parse().unwrap());
+    headers.insert(
+        ACCESS_CONTROL_EXPOSE_HEADERS,
+        "location, retry-after".parse().unwrap(),
+    );
 }
 
 fn inject_headers(
@@ -551,6 +554,7 @@ async fn response(
 #[tokio::main]
 async fn main() -> Result<()> {
     env_logger::init();
+    debug!("Initialize globals");
 
     let addr: SocketAddr = match RUNTIME_CONFIG.bind_to.parse() {
         Ok(addr) => addr,
@@ -596,7 +600,10 @@ async fn main() -> Result<()> {
     let res = tokio::try_join!(update_perm, update_api, async {
         loop {
             let stream = match listener.accept().await {
-                Ok((stream, _socket)) => stream,
+                Ok((stream, socket)) => {
+                    debug!("Accepted new connection from {socket:?}");
+                    stream
+                }
                 Err(err) => {
                     error!("Failed to accept connection: {err:?}");
                     continue;

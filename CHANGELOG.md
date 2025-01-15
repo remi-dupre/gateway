@@ -1,3 +1,8 @@
+# 2.2.2
+
+- More DEBUG logs especially while renewing permissions
+- The gateway will immediately fetch permissions when initialized.
+
 # 2.2.1
 
 - Fix `Sec-WebSocket-Extensions` header being forwarded while the gateway does

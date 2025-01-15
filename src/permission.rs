@@ -54,6 +54,8 @@ pub async fn get_perm() -> Result<(
     let mut user_role = HashMap::new();
 
     for perm_uri in RUNTIME_CONFIG.perm_uris.iter().as_ref() {
+        debug!("Fetch {perm_uri:?}");
+
         match fetch_perm(perm_uri).await {
             Some(perm_vec) => {
                 for perm in perm_vec.iter() {
@@ -110,32 +112,35 @@ pub async fn update_perm(
     let max_fetch_error_count = RUNTIME_CONFIG.max_fetch_error_count;
 
     loop {
-        sleep(Duration::from_millis(RUNTIME_CONFIG.perm_update_delay) * 1000).await;
+        debug!("Renew permissions");
         let perm_update = get_perm().await;
+
         if perm_update.is_err() {
             error_count += 1;
-            error!(
-                "Failed to fetch/update permissions for the {} times",
-                error_count
-            );
+            error!("Failed to fetch/update permissions for the {error_count}th consecutive times");
 
             if error_count >= max_fetch_error_count {
                 bail!("Failed to fetch/update permissions")
             }
         } else {
+            debug!("Fetched the new list of permissions");
             let (perm, role) = perm_update.unwrap();
 
+            debug!("Updating roles data");
             let mut perm_write = perm_lock.write().await;
             *perm_write = perm;
             drop(perm_write);
 
+            debug!("Updating perms data");
             let mut role_write = role_lock.write().await;
             *role_write = role;
             drop(role_write);
 
+            debug!("Permissions renewed");
             error_count = 0;
-            debug!("perm updated");
         }
+
+        sleep(Duration::from_millis(RUNTIME_CONFIG.perm_update_delay) * 1000).await;
     }
 }
 
